@@ -406,6 +406,22 @@ J9NLS_BCV_ERR_WRONG_INIT_METHOD.system_action=The JVM will throw a verification 
 J9NLS_BCV_ERR_WRONG_INIT_METHOD.user_response=Contact the provider of the classfile for a corrected version.
 # END NON-TRANSLATABLE
 
+J9NLS_BCV_ERR_FLATTENABLE_NOT_VALUE_TYPE=flattenable field is not a value type
+# START NON-TRANSLATABLE
+J9NLS_BCV_ERR_FLATTENABLE_NOT_VALUE_TYPE.explanation=The class has a field marked flattenable which is not a value type.
+J9NLS_BCV_ERR_FLATTENABLE_NOT_VALUE_TYPE.system_action=The JVM will throw a IncompatibleClassChangeError.
+J9NLS_BCV_ERR_FLATTENABLE_NOT_VALUE_TYPE.user_response=Contact the provider of the classfile for a corrected version.
+
+# END NON-TRANSLATABLE
+
+J9NLS_BCV_ERR_VALUE_TYPE_FIELD_MISSING_ATTRIBUTE=value type field missing in ValueTypes attribute
+# START NON-TRANSLATABLE
+J9NLS_BCV_ERR_VALUE_TYPE_FIELD_MISSING_ATTRIBUTE.explanation=The class has a value types field which is missing from its ValueType attribute. 
+J9NLS_BCV_ERR_VALUE_TYPE_FIELD_MISSING_ATTRIBUTE.system_action=The JVM will throw a ClassFileError.
+J9NLS_BCV_ERR_VALUE_TYPE_FIELD_MISSING_ATTRIBUTE.user_response=Contact the provider of the classfile for a corrected version.
+
+# END NON-TRANSLATABLE
+
 #Example: JVMVRFY012; class=Foo, method=main([Ljava/lang/String;)V, pc=5; Type Mismatch, argument 0 in signature Foo."<init>":(Ljava/lang/String;)V does not match
 J9NLS_BCV_ERROR_TEMPLATE_TYPE_MISMATCH=%1$s; class=%3$.*2$s, method=%5$.*4$s%7$.*6$s, pc=%8$u; Type Mismatch, argument %9$d in signature %11$.*10$s.%13$.*12$s:%15$.*14$s does not match
 # START NON-TRANSLATABLE
