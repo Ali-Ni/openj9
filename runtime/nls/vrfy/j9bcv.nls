@@ -406,6 +406,20 @@ J9NLS_BCV_ERR_WRONG_INIT_METHOD.system_action=The JVM will throw a verification 
 J9NLS_BCV_ERR_WRONG_INIT_METHOD.user_response=Contact the provider of the classfile for a corrected version.
 # END NON-TRANSLATABLE
 
+J9NLS_BCV_SUPERCLASS_IS_VALUE_TYPE=%s: superclass is value type class
+# START NON-TRANSLATABLE
+J9NLS_BCV_SUPERCLASS_IS_VALUE_TYPE.explanation=Value type classes cannot be named as superclasses.
+J9NLS_BCV_SUPERCLASS_IS_VALUE_TYPE.system_action=The JVM will throw a verification or classloading related exception such as java.lang.VerifyError.
+J9NLS_BCV_SUPERCLASS_IS_VALUE_TYPE.user_response=Contact the provider of the classfile for a corrected version.
+# END NON-TRANSLATABLE
+
+J9NLS_BCV_VALUE_TYPE_SUPERCLASS=%s: value type superclass is not java/lang/Object
+# START NON-TRANSLATABLE
+J9NLS_BCV_VALUE_TYPE_SUPERCLASS.explanation=Value type classes cannot inherit from classes other than java.lang.Object.
+J9NLS_BCV_VALUE_TYPE_SUPERCLASS.system_action=The JVM will throw a verification or classloading related exception such as java.lang.VerifyError.
+J9NLS_BCV_VALUE_TYPE_SUPERCLASS.user_response=Contact the provider of the classfile for a corrected version.
+# END NON-TRANSLATABLE
+
 #Example: JVMVRFY012; class=Foo, method=main([Ljava/lang/String;)V, pc=5; Type Mismatch, argument 0 in signature Foo."<init>":(Ljava/lang/String;)V does not match
 J9NLS_BCV_ERROR_TEMPLATE_TYPE_MISMATCH=%1$s; class=%3$.*2$s, method=%5$.*4$s%7$.*6$s, pc=%8$u; Type Mismatch, argument %9$d in signature %11$.*10$s.%13$.*12$s:%15$.*14$s does not match
 # START NON-TRANSLATABLE
