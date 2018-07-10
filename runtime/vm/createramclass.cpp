@@ -1540,6 +1540,14 @@ loadSuperClassAndInterfaces(J9VMThread *vmThread, J9ClassLoader *classLoader, J9
 				setCurrentExceptionForBadClass(vmThread, superclassName, J9VMCONSTANTPOOL_JAVALANGINCOMPATIBLECLASSCHANGEERROR);
 				return FALSE;
 			}
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+			/* ensure that the superclass isn't a value type */
+			if ((superclass->romClass->modifiers & J9AccValueType) != 0) {
+				Trc_VM_CreateRAMClassFromROMClass_superclassIsValueType(vmThread, superclass);
+				setCurrentExceptionForBadClass(vmThread, superclassName, J9VMCONSTANTPOOL_JAVALANGINCOMPATIBLECLASSCHANGEERROR);
+				return FALSE;
+			}
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 
 			/* ensure that the superclass is visible */
 			if (!isROMClassUnsafe) {
