@@ -1381,6 +1381,11 @@ _illegalPrimitiveReturn:
 			if (bc & 1) {
 				/* JBputfield/JBpustatic - odd bc's */
 				type = POP;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+				if ((type == BCV_BASE_TYPE_NULL) && (hashTableFind(valueTypesTable, utf8string) != NULL)) {
+					goto _inconsistentStack;
+				}
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 				if ((*J9UTF8_DATA(utf8string) == 'D') || (*J9UTF8_DATA(utf8string) == 'J')) {
 					inconsistentStack |= (type != BCV_BASE_TYPE_TOP);
 					if (inconsistentStack) {
