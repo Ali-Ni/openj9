@@ -38,6 +38,9 @@
 
 #include "ut_j9bcverify.h"
 
+/* TODO: Perform profiling and find optimal value */
+#define VALUE_TYPE_TABLE_INITIAL_SIZE 8
+
 
 static IDATA verifyBytecodes (J9BytecodeVerificationData * verifyData);
 static IDATA matchStack (J9BytecodeVerificationData * verifyData, J9BranchTargetStack *liveStack,  J9BranchTargetStack * targetStack, UDATA inlineMatch);
@@ -390,6 +393,20 @@ _errorLocation:
 	goto _finished;
 }
 
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+static UDATA 
+valueTypesHashFn(void *key, void *userData) 
+{
+	J9JavaVM* javaVM = (J9JavaVM*) userData;
+	return javaVM->internalVMFunctions->computeHashForUTF8(J9UTF8_DATA(key), J9UTF8_LENGTH(key));
+}
+
+static UDATA  
+valueTypesHashEqualFn(void *tableNode, void *queryNode, void *userData)
+{
+	return J9UTF8_EQUALS((J9UTF8*) tableNode, (J9UTF8*) queryNode);
+}
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 
 /* 
 	Walk the bytceodes linearly and verify that the recorded stack maps match.
@@ -461,6 +478,9 @@ verifyBytecodes (J9BytecodeVerificationData * verifyData)
 	UDATA errorStackIndex = (UDATA)-1;
 	UDATA errorTempData = (UDATA)-1;
 	BOOLEAN isNextStack = FALSE;
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	J9HashTable* valueTypesTable;
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 
 	Trc_RTV_verifyBytecodes_Entry(verifyData->vmStruct, 
 			(UDATA) J9UTF8_LENGTH(J9ROMMETHOD_GET_NAME(romClass, romMethod)),
@@ -512,6 +532,21 @@ verifyBytecodes (J9BytecodeVerificationData * verifyData)
 
 	/* Determine where the first region of bytecodes covered by an exception handler is */
 	nextExceptionStartPC = nextExceptionStart (verifyData, romMethod, -1);
+
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+	/* Construct table for value types attribute */
+	{
+		U_32 flags = J9HASH_TABLE_ALLOW_SIZE_OPTIMIZATION;
+		
+		valueTypesTable = hashTableNew(OMRPORT_FROM_J9PORT(verifyData->javaVM->portLibrary), J9_GET_CALLSITE(), VALUE_TYPE_TABLE_INITIAL_SIZE, sizeof(void*),
+						sizeof(void*), flags, J9MEM_CATEGORY_MODULES, valueTypesHashFn, valueTypesHashEqualFn, NULL, verifyData->javaVM);
+		J9SRP *valueTypeClasses = J9ROMCLASS_VALUETYPECLASSES(romClass);
+
+		for (i = 0; i < romClass->valueTypeClassCount; i++) {
+			hashTableAdd(valueTypesTable, NNSRP_GET(valueTypeClasses[i], J9UTF8*));
+		}
+	}
+#endif /* J9VM_OPT_VALHALLA_VALUE_TYPES */
 
 	/* walk the bytecodes linearly */
 	while (pc < length) {
@@ -2310,7 +2345,7 @@ _newStack:
 		verboseErrorCode = BCV_ERR_DEAD_CODE;
 		goto _miscError;
 	}
-
+	hashTableFree(valueTypesTable);
 	Trc_RTV_verifyBytecodes_Exit(verifyData->vmStruct);
 	
 	return BCV_SUCCESS;
@@ -2331,6 +2366,7 @@ _compatibleError:
 	}
 
 _verifyError:
+	hashTableFree(valueTypesTable);
 	/* Jazz 82615: Store the error code in the case of CHECK_STACK_UNDERFLOW */
 	if ((stackTop < stackBase) && (J9NLS_BCV_ERR_STACK_UNDERFLOW__ID == errorType)) {
 		/* Reset to the location of the 1st data type on 'stack' in the case of stack underflow to show up */
