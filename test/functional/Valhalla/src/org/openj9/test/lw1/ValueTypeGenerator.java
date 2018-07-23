@@ -6,8 +6,6 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import jdk.internal.misc.Unsafe;
-
 import static org.objectweb.asm.Opcodes.*;
 
 import java.lang.reflect.Field;
@@ -15,24 +13,12 @@ import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ValueTypeGenerator {
-	private static Unsafe unsafe;
-
+public class ValueTypeGenerator extends ClassLoader{
 	/* workaround till the new ASM is released */
-	public static final int DEFAULTVALUE = 204;
-	public static final int WITHFIELD = 203;
+	public static final int DEFAULTVALUE = 203;
+	public static final int WITHFIELD = 204;
 	private static final int ACC_VALUE_TYPE = 0x100;
 	private static final int ACC_FLATTENABLE = 0x100;
-	
-	static {
-		try {
-			Field f = Unsafe.class.getDeclaredField("theUnsafe");
-			f.setAccessible(true);
-			unsafe = (Unsafe) f.get(null);
-		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			e.printStackTrace();
-		}	
-	}
 	
 	public static byte[] generateValue(String valueName, String[] fields) {
 		ArrayList<String> valueTypesList = new ArrayList<String>();
@@ -44,7 +30,7 @@ public class ValueTypeGenerator {
 
 		cw.visitSource(valueName + ".java", null);
 		
-		valueTypesList.add("L" + valueName + ";");
+		//valueTypesList.add("L" + valueName + ";");
 
 		String makeValueSig = "";
 		for (String s : fields) {
@@ -52,6 +38,7 @@ public class ValueTypeGenerator {
 			int fieldModifiers = ACC_PUBLIC + ACC_FINAL;
 			if (nameAndSigValue.length > 2 && nameAndSigValue[2].equals("value")) {
 				fieldModifiers += ACC_FLATTENABLE;
+				
 				valueTypesList.add(nameAndSigValue[1]);
 			}
 			fv = cw.visitField(fieldModifiers, nameAndSigValue[0], nameAndSigValue[1], null, null);
@@ -60,7 +47,11 @@ public class ValueTypeGenerator {
 			
 			generateGetter(cw, nameAndSigValue, valueName);
 			
-			generateSetter(cw, nameAndSigValue, valueName);
+			//generateSetter(cw, nameAndSigValue, valueName);
+
+			if (nameAndSigValue[1].charAt(0) == 'L') {
+				//generateNullSetter(cw, nameAndSigValue, valueName);
+			}
 			
 			generateWither(cw, nameAndSigValue, valueName);
 			
@@ -68,7 +59,7 @@ public class ValueTypeGenerator {
 		
 		/* create valueTypes attribute */
 		cw.visitAttribute(new ValueTypesAttribute(valueTypesList));
-		cw.visitEnd();
+		//cw.visitEnd();
 		
 		{
 			boolean doubleDetected = false;
@@ -131,7 +122,7 @@ public class ValueTypeGenerator {
 			int fieldModifiers = ACC_PUBLIC;
 			if (nameAndSigValue.length > 2 && nameAndSigValue[2].equals("value")) {
 				fieldModifiers += ACC_FLATTENABLE;
-				valueTypesList.add(nameAndSigValue[1]);
+				valueTypesList.add(nameAndSigValue[1].substring(1, nameAndSigValue[1].length()-1));
 			}
 			fv = cw.visitField(fieldModifiers, nameAndSigValue[0], nameAndSigValue[1], null, null);
 			fv.visitEnd();
@@ -142,6 +133,9 @@ public class ValueTypeGenerator {
 				makeMaxLocal += 1;
 			}
 			
+			if (nameAndSigValue[1].charAt(0) == 'L') {
+				generateNullSetter(cw, nameAndSigValue, className);
+			}
 			
 			generateGetter(cw, nameAndSigValue, className);
 			
@@ -150,7 +144,7 @@ public class ValueTypeGenerator {
 		
 		/* create valueTypes attribute */
 		cw.visitAttribute(new ValueTypesAttribute(valueTypesList));
-		cw.visitEnd();
+		//cw.visitEnd();
 		
 		{
 			mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
@@ -243,10 +237,21 @@ public class ValueTypeGenerator {
 		mv.visitMaxs(2, 2);
 		mv.visitEnd();
 	}
+
+	private static void generateNullSetter(ClassWriter cw, String[] nameAndSigValue, String className) {
+		/* generate setter */
+		MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "setNull" + nameAndSigValue[0], "()V", null, null);
+		mv.visitCode();
+		mv.visitInsn(ACONST_NULL);
+		mv.visitFieldInsn(PUTFIELD, className, nameAndSigValue[0], nameAndSigValue[1]);
+		mv.visitInsn(RETURN);
+		mv.visitMaxs(2, 2);
+		mv.visitEnd();
+	}
 	
 	private static void generateWither(ClassWriter cw, String[] nameAndSigValue, String className) {
 		/* generate setter */
-		MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "set" + nameAndSigValue[0], "(" + nameAndSigValue[1] + ")L" + className + ";", null, null);
+		MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "with" + nameAndSigValue[0], "(" + nameAndSigValue[1] + ")L" + className + ";", null, null);
 		mv.visitCode();
 		mv.visitVarInsn(ALOAD, 0);
 		switch (nameAndSigValue[1]) {
@@ -271,7 +276,7 @@ public class ValueTypeGenerator {
 			break;
 		}
 		mv.visitFieldInsn(WITHFIELD, className, nameAndSigValue[0], nameAndSigValue[1]);
-		mv.visitInsn(RETURN);
+		mv.visitInsn(ARETURN);
 		mv.visitMaxs(2, 2);
 		mv.visitEnd();
 	}
@@ -306,8 +311,9 @@ public class ValueTypeGenerator {
 		mv.visitEnd();
 	}
 	
-	static public Class<?> defineClass(String className, byte[] bytes, ClassLoader loader, ProtectionDomain pD) throws Throwable {
-		Class<?> newClass = unsafe.defineClass(className, bytes, 0, bytes.length, loader, pD);
+	
+	public Class<?> getClass(String className, byte[] bytes) throws Throwable {
+		Class<?> newClass = defineClass(className, bytes, 0, bytes.length);
 		return newClass;
 	}
 }
