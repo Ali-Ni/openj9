@@ -972,15 +972,21 @@ illegalAccess:
 					}
 					goto done;
 				}
-				if (!finalFieldSetAllowed(vmStruct, false, method, definingClass, classFromCP, field, jitFlags)) {
+#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
+				/* If setting value type field, then field must be final. Otherwise, only initializer methods can set */
+				if (J9_ARE_ALL_BITS_SET(resolveFlags, J9_RESOLVE_FLAG_CHECK_VALUE_CLASS)) {
+					if (J9_ARE_NO_BITS_SET(modifiers, J9_JAVA_FINAL)) {
+						setCurrentExceptionUTF(vmStruct, J9VMCONSTANTPOOL_JAVALANGILLEGALACCESSERROR, NULL);
+						/* TODO: add detail message */
+						fieldOffset = -1;
+						goto done;
+					}
+				} else if (!finalFieldSetAllowed(vmStruct, false, method, definingClass, classFromCP, field, jitFlags)) {
 					fieldOffset = -1;
 					goto done;
 				}
-#if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-				if (J9_ARE_ALL_BITS_SET(resolveFlags, J9_RESOLVE_FLAG_CHECK_VALUE_CLASS)
-					&& J9_ARE_NO_BITS_SET(modifiers, J9_JAVA_FINAL)) {
-					setCurrentExceptionUTF(vmStruct, J9VMCONSTANTPOOL_JAVALANGILLEGALACCESSERROR, NULL);
-					/* TODO: add detail message */
+#else /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
+				if (!finalFieldSetAllowed(vmStruct, false, method, definingClass, classFromCP, field, jitFlags)) {
 					fieldOffset = -1;
 					goto done;
 				}
