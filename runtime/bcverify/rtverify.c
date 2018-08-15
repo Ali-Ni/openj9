@@ -1459,7 +1459,21 @@ _illegalPrimitiveReturn:
 					goto _miscError;
 				}
 #if defined(J9VM_OPT_VALHALLA_VALUE_TYPES)
-				if (bc == JBwithfield) {
+				if (bc & 1) {
+					/* JBputfield/JBputstatic */
+					if (NULL != hashTableFind(valueTypesTable, &utf8string)) {
+						/* only JBwithfield can be used to set a value type's fields */
+						errorType = J9NLS_BCV_ERR_BAD_PUTFIELD_TARGET__ID;
+						verboseErrorCode = BCV_ERR_BAD_PUTFIELD_TARGET;
+						goto _miscError;
+					}
+				} else if (bc == JBwithfield) {
+					if (NULL == hashTableFind(valueTypesTable, &utf8string)) {
+						/* JBwithfield must operate on a value type class's field */
+						errorType = J9NLS_BCV_ERR_BAD_WITHFIELD_TARGET__ID;
+						verboseErrorCode = BCV_ERR_BAD_WITHFIELD_TARGET;
+						goto _miscError;
+					}
 					stackTop = pushClassType(verifyData, utf8string, stackTop);
 				}
 #endif /* defined(J9VM_OPT_VALHALLA_VALUE_TYPES) */
